@@ -5,14 +5,14 @@ using System.Text;
 
 namespace TSSkill
 {
-    public interface IBuff
+    public interface ISkillTrigger
     {
         Int64 NeedComponent { get; }
 
         void Execute(IPlayerData playerData);
     }
 
-    public abstract class BuffBase : IBuff
+    public abstract class SkillTriggerBase : ISkillTrigger
     {
         public abstract long NeedComponent { get; }
 
@@ -27,11 +27,20 @@ namespace TSSkill
 
         public abstract void Execute(IPlayerData playerData);
 
-        private BuffBase() { }
+        private SkillTriggerBase() { }
 
-        public BuffBase (string args)
+        public SkillTriggerBase(string args)
         {
-
+            string[] @params = args.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (string item in @params)
+            {
+                string[] fieldConfig = item.Split(new char[] { ':' }, StringSplitOptions.RemoveEmptyEntries);
+                if (fieldConfig.Length != 2)
+                {
+                    UnityEngine.Debug.LogError(this.GetType().Name + "Buff的参数有误");
+                    continue;
+                }
+            }
         }
 
     }

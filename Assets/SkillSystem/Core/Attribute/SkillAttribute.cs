@@ -5,9 +5,6 @@ using System.Text;
 
 namespace TSSkill
 {
-    //class SkillAttribute
-    //{
-    //}
 
     /// <summary>
     /// 依赖，需要某个值注入
@@ -40,7 +37,6 @@ namespace TSSkill
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = false, Inherited = false)]
     public class InjectAttribute : Attribute
     {
-
         private string _injectName = null;
         public string R_InjectName
         {
@@ -59,4 +55,35 @@ namespace TSSkill
         /// <param name="injectName"></param>
         public InjectAttribute(string injectName) { _injectName = injectName; }
     }
+
+    /// <summary>
+    /// 需要配置的字段名称
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Field, AllowMultiple = false, Inherited = false)]
+    public class ConfigAttribute : Attribute
+    {
+        private string _configName = null;
+        public string R_ConfigName { get { return _configName; } }
+
+        private string _editorShowName = null;
+        public string R_EditorShowName { get { return _editorShowName; } }
+
+        /// <summary>
+        /// 此属性为Buff 需要读表的字段添加
+        /// </summary>
+        public ConfigAttribute() : this(null) { }
+        /// <summary>
+        /// 此属性为Buff 需要读表的字段添加
+        /// </summary>
+        /// <param name="configName"></param>
+        public ConfigAttribute(string configName) : this(configName, null) { }
+
+        /// <summary>
+        /// 此属性为Buff 需要读表的字段添加
+        /// </summary>
+        /// <param name="configName"></param>
+        /// <param name="editorShowName"></param>
+        public ConfigAttribute(string configName, string editorShowName) { _configName = configName; _editorShowName = editorShowName; }
+    }
+
 }

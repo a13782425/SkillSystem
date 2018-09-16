@@ -14,10 +14,7 @@ public class LevelComponent : BaseSkillComponent
         }
     }
 
-    [Dependency]
-    public int Level;
-
-    public LevelComponent(ISkillData skillData) : base(skillData)
+    public LevelComponent(SkillData skillData) : base(skillData)
     {
     }
 }

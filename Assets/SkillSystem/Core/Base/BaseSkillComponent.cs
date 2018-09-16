@@ -9,12 +9,28 @@ namespace TSSkill
     public abstract class BaseSkillComponent : ISkillComponent
     {
         public abstract Int64 ComponentId { get; }
-        protected ISkillData _currentSkillData = null;
+        public float Value { get; set; }
+
+        protected SkillData _currentSkillData = null;
         private Dictionary<string, FieldInfo> _fieldInfoDic = null;
+
+
+        public BaseSkillComponent Clone()
+        {
+            BaseSkillComponent baseSkillComponent = Activator.CreateInstance(this.GetType()) as BaseSkillComponent;
+            if (baseSkillComponent !=null)
+            {
+                baseSkillComponent.Value = this.Value;
+            }
+            return baseSkillComponent;
+        }
+
+
+
 
         private BaseSkillComponent() { }
 
-        public BaseSkillComponent(ISkillData skillData)
+        public BaseSkillComponent(SkillData skillData)
         {
             Refresh(skillData);
         }
@@ -22,7 +38,7 @@ namespace TSSkill
         /// 刷新组件
         /// </summary>
         /// <param name="skillData"></param>
-        public void Refresh(ISkillData skillData)
+        public void Refresh(SkillData skillData)
         {
             _currentSkillData = skillData;
             if (_fieldInfoDic == null)

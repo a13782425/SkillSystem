@@ -1,0 +1,54 @@
+﻿Skill(1000)
+{
+	SkillType:10,
+	MaxLevel:2,
+	Name:"dasda,dsad",
+	Levels:[
+		[
+			Level : 1,
+			属性 : value,
+			Trigger:
+			[
+				AddBuff(buffSkillId:1,buffLevel:1),
+				AddBuff(buffSkillId:2,buffLevel:2)
+			]
+		],
+		[
+			Level : 2,
+			属性 : value,
+			Trigger:
+			[
+				AddBuff(buffSkillId:1,buffLevel:1),
+				AddBuff(buffSkillId:2,buffLevel:2),
+				AddBuff(buffSkillId:3,buffLevel:3)
+			]
+		]
+	]
+},
+Skill(1001)
+{
+	SkillType:10,
+	MaxLevel:2,
+	Name:"dasda,11",
+	Levels:[
+		[
+			Level : 1,
+			属性 : value,
+			Trigger:
+			[
+				AddBuff(buffSkillId:1,buffLevel:1),
+				AddBuff(buffSkillId:2,buffLevel:2)
+			]
+		],
+		[
+			Level : 2,
+			属性 : value,
+			Trigger:
+			[
+				Attack(damage:10),
+				AddBuff(buffSkillId:2,buffLevel:2),
+				AddBuff(buffSkillId:3,buffLevel:3)
+			]
+		]
+	]
+}

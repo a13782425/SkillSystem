@@ -20,11 +20,11 @@ namespace TSSkill
 
         #region 缓存的类型
 
-        private Type _iskillDataType = null;
         private Type _skillDataType = null;
         private Type _iskillComponentType = null;
         private Type _injectType = null;
         private Type _dependencyType = null;
+        private Type _configType = null;
 
         #endregion
 
@@ -34,16 +34,58 @@ namespace TSSkill
 
         private Dictionary<string, Dictionary<string, FieldInfo>> _skillComponentFieldInfoCacheDic = null;
 
+        private Dictionary<string, Dictionary<string, FieldInfo>> _skillBuffFieldInfoCacheDic = null;
+
+        private Dictionary<int, SkillEntity> _firstGenerationCacheDic = null;
+
+        private Dictionary<int, Stack<SkillEntity>> _skillEntityCacheDic = null;
+
+        private Dictionary<int, string> _skillStringCacheDic = null;
+
+        private string _cacheSkillString = null;
+
+        #endregion
+
+        #region 私有变量
+
+        private bool _isInit = false;
+        /// <summary>
+        /// 是否初始化完毕
+        /// </summary>
+        public bool R_IsInit { get { return _isInit; } }
+
+
         #endregion
 
         #region 公共方法
+
+        public void Init(string skillData)
+        {
+            if (string.IsNullOrEmpty(skillData))
+            {
+                Debug.LogError("技能数据为空");
+                return;
+            }
+            _cacheSkillString = skillData;
+
+            //_skillStringCacheDic = SkillParser.ParserSkillIds(_cacheSkillString);
+            foreach (KeyValuePair<int, string> item in _skillStringCacheDic)
+            {
+                SkillEntity skillEntity = new SkillEntity(item.Key, item.Value);
+
+                Debug.LogError("SkillId:" + item.Key + "====SkillCode:" + item.Value);
+            }
+
+            _isInit = true;
+        }
+
 
         /// <summary>
         /// 获取技能数据中的值
         /// </summary>
         /// <param name="skillData">技能数据</param>
         /// <param name="injectName">依赖名字</param>
-        public object GetSkillDataValue(ISkillData skillData, string injectName)
+        public object GetSkillDataValue(SkillData skillData, string injectName)
         {
             if (string.IsNullOrEmpty(injectName))
             {
@@ -72,7 +114,7 @@ namespace TSSkill
         /// <param name="skillData">技能数据</param>
         /// <param name="injectName">依赖名字</param>
         /// <returns></returns>
-        public T GetSkillDataValueAsT<T>(ISkillData skillData, string injectName)
+        public T GetSkillDataValueAsT<T>(SkillData skillData, string injectName)
         {
             object value = GetSkillDataValue(skillData, injectName);
             if (value != null)
@@ -124,7 +166,46 @@ namespace TSSkill
             }
             return tempDic;
         }
-        
+
+        /// <summary>
+        /// 获取Buff字段
+        /// </summary>
+        /// <param name="type"></param>
+        public Dictionary<string, FieldInfo> GetTriggerField(Type type)
+        {
+            Dictionary<string, FieldInfo> tempDic = new Dictionary<string, FieldInfo>();
+            if (_iskillComponentType.IsAssignableFrom(type))
+            {
+                string name = type.Name;
+                if (_skillBuffFieldInfoCacheDic.ContainsKey(name))
+                {
+                    return _skillBuffFieldInfoCacheDic[name];
+                }
+                FieldInfo[] fieldInfos = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                foreach (FieldInfo item in fieldInfos)
+                {
+                    object[] attrs = item.GetCustomAttributes(_configType, false);
+
+                    if (attrs.Length > 0)
+                    {
+                        ConfigAttribute configAttribute = attrs[0] as ConfigAttribute;
+                        if (configAttribute != null)
+                        {
+                            string fieldName = item.Name;
+                            if (!string.IsNullOrEmpty(configAttribute.R_ConfigName))
+                            {
+                                fieldName = configAttribute.R_ConfigName;
+                            }
+                            tempDic.Add(fieldName, item);
+                        }
+                    }
+                }
+                _skillBuffFieldInfoCacheDic.Add(name, tempDic);
+            }
+            return tempDic;
+        }
+
+
         //    skill(1000) //技能1
         //    {
         //    FaceToTarget(0)
@@ -134,13 +215,13 @@ namespace TSSkill
         //    AddBuff(1, 1, 1, 30%)
         //    Attack()
         //    }
-        public bool CreateSkillEntity(string skillConfig)
+        public bool CreateSkillEntity(int skillId)
         {
-            if (string.IsNullOrEmpty(skillConfig))
-                return false;
-            string[] lines = skillConfig.Split('\n');
+            //if (string.IsNullOrEmpty(skillConfig))
+            //    return false;
+            //string[] lines = skillConfig.Split('\n');
 
-            SkillEntity skillEntity = new SkillEntity(10);
+            //SkillEntity skillEntity = new SkillEntity(10);
 
             return true;
         }
@@ -155,25 +236,17 @@ namespace TSSkill
         /// </summary>
         private SkillSystem()
         {
-            _iskillDataType = typeof(ISkillData);
+            _skillDataType = typeof(SkillData);
             _iskillComponentType = typeof(ISkillComponent);
             _injectType = typeof(InjectAttribute);
             _dependencyType = typeof(DependencyAttribute);
+            _configType = typeof(ConfigAttribute);
             _skillComponentFieldInfoCacheDic = new Dictionary<string, Dictionary<string, FieldInfo>>();
+            _skillBuffFieldInfoCacheDic = new Dictionary<string, Dictionary<string, FieldInfo>>();
             _skillFieldInfoDic = new Dictionary<string, FieldInfo>();
-            Type[] types = _iskillDataType.Assembly.GetTypes();
-            foreach (Type item in types)
-            {
-                if (!item.IsAbstract && _iskillDataType.IsAssignableFrom(item))
-                {
-                    _skillDataType = item;
-                    break;
-                }
-            }
-            if (_skillDataType == null)
-            {
-                Debug.LogError("当前项目中没有找到对应的ISkillData实现类");
-            }
+            _skillStringCacheDic = new Dictionary<int, string>();
+            _firstGenerationCacheDic = new Dictionary<int, SkillEntity>();
+            _skillEntityCacheDic = new Dictionary<int, Stack<SkillEntity>>();
             FieldInfo[] fieldInfos = _skillDataType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             foreach (FieldInfo item in fieldInfos)
             {

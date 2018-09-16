@@ -12,4 +12,11 @@ public class DamageComponent : TSSkill.ISkillComponent
             return SkillComponentIds.Damage;
         }
     }
+
+    public float Value
+    {
+        get;
+
+        set;
+    }
 }

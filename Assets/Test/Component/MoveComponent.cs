@@ -11,4 +11,10 @@ public class MoveComponent : TSSkill.ISkillComponent
             return SkillComponentIds.Move;
         }
     }
+
+    public float Value
+    {
+        get;
+        set;
+    }
 }

@@ -30,19 +30,29 @@ public static partial class SkillComponentIds
     public const Int64 NONE_COMPONENT = Int64.MaxValue;
 
     #endregion
+}
 
+public static partial class SkillTriggerIds
+{
 
-    #region Test
+    #region 标签位
 
     /// <summary>
-    /// 伤害
+    /// 低位标签
     /// </summary>
-    public const Int64 Damage = (1L << 0) | LOW_FLAG;
+    private const Int64 LOW_FLAG = 0L;
     /// <summary>
-    /// 位移
+    /// 高位标签
     /// </summary>
-    public const Int64 Move = (1L << 1) | LOW_FLAG;
+    private const Int64 HIGH_FLAG = 1L << 63;
 
     #endregion
+}
 
+[Serializable]
+public partial class SkillData
+{
+    public int MaxLevel;
+
+    //public int Level;
 }
