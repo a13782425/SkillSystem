@@ -9,6 +9,7 @@ public class Test : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
         TSSkill.SkillSystem.Instance.Init(text1.text);
+        TSSkill.SkillSystem.Instance.CreateSkillEntity(1001, 1);
 	}
 	
 	// Update is called once per frame

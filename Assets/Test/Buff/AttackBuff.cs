@@ -7,24 +7,24 @@ using UnityEngine;
 
 public class AttackBuff : SkillTriggerBase
 {
-    public AttackBuff(string args) : base(args)
-    {
-    }
+    //public AttackBuff(string args) : base(args)
+    //{
+    //}
 
-    public override long NeedComponent
+    public override long SkillTriggerId
     {
         get
         {
-            return SkillComponentIds.ALL_COMPONENT;
+            return SkillTriggerIds.Damage;
         }
     }
-    [Config("BuffSkillId","技能ID")]
-    private int buffSkillId = 1000;
-    [Config("BuffLevel", "Buff等级")]
-    private int buffLevel = 1;
+    [Config("Attack", "伤害")]
+    private int attack = 1000;
+
 
     public override void Execute(IPlayerData playerData)
     {
+        Debug.LogError("造成了" + attack + "伤害");
         Debug.LogError("Attack");
     }
 }

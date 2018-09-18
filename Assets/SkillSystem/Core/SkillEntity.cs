@@ -1,5 +1,7 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Xml;
 using UnityEngine;
 
 namespace TSSkill
@@ -22,38 +24,45 @@ namespace TSSkill
         private Dictionary<long, BaseSkillComponent> _componentDic = new Dictionary<long, BaseSkillComponent>();
 
         private List<ISkillTrigger> _skillTriggerList = new List<ISkillTrigger>();
-
-
-        public SkillEntity Clone()
-        {
-            SkillEntity entity = new SkillEntity();
-            entity._id = this.R_Id;
-            entity.Name = this.Name;
-            foreach (KeyValuePair<long, BaseSkillComponent> item in this._componentDic)
-            {
-                entity._componentDic.Add(item.Key, item.Value.Clone());
-            }
-
-            return entity;
-        }
-
+        private XmlNode _skillXml;
 
 
         #region 构造函数
-        public SkillEntity() { }
+        private SkillEntity() { }
+
         /// <summary>
         /// 技能实体
-        /// </summary>
-        /// <param name="id">技能ID</param>
-        public SkillEntity(int id) : this(id, null) { }
-        /// <summary>
-        /// 技能实体
+        /// /*
+        /// <Level Value="2">
+		///	    <AddBuff buffSkillId = "2" buffLevel="2"/>
+		///	    <AttackBuff buffSkillId = "2" buffLevel="2"/>
+		/// </Level>
+        /// */
         /// </summary>
         /// <param name="id">技能ID</param>
         /// <param name="data">技能参数</param>
-        public SkillEntity(int id, string data)
+        public SkillEntity(int id, XmlNode skillXml)
         {
-            _id = id;
+            this._id = id;
+            this._skillXml = skillXml;
+            _skillTriggerList = new List<ISkillTrigger>();
+            XmlNodeList nodeList = _skillXml.ChildNodes;
+            foreach (XmlNode item in nodeList)
+            {
+                if (item is XmlElement)
+                {
+                    string triggerName = item.Name;
+                    ISkillTrigger skillTrigger= SkillSystem.Instance.GetTrigger(triggerName);
+                    if (skillTrigger == null)
+                    {
+                        Debug.LogError(triggerName + "没有找到类型！！！");
+                        continue;
+                    }
+                    
+                    _skillTriggerList.Add(skillTrigger);
+                }
+            }
+
 
         }
 
@@ -85,10 +94,7 @@ Skill(1000)
 	]
 }
          */
-        public SkillEntity(string data)
-        {
 
-        }
 
 
         #endregion

@@ -5,6 +5,7 @@ using System.Text;
 using UnityEngine;
 using Object = UnityEngine.Object;
 using System.Reflection;
+using System.Xml;
 
 namespace TSSkill
 {
@@ -22,6 +23,7 @@ namespace TSSkill
 
         private Type _skillDataType = null;
         private Type _iskillComponentType = null;
+        private Type _iskillTriggerType = null;
         private Type _injectType = null;
         private Type _dependencyType = null;
         private Type _configType = null;
@@ -29,6 +31,8 @@ namespace TSSkill
         #endregion
 
         #region 缓存数据
+
+        private Dictionary<string, Type> _skillTriggerTypeCacheDic = null;
 
         private Dictionary<string, FieldInfo> _skillFieldInfoDic = null;
 
@@ -41,14 +45,22 @@ namespace TSSkill
         private Dictionary<int, Stack<SkillEntity>> _skillEntityCacheDic = null;
 
         private Dictionary<int, string> _skillStringCacheDic = null;
+        /// <summary>
+        /// Key：技能id   Value：key:等级，value：具体技能表现
+        /// </summary>
+        private Dictionary<int, Dictionary<int, XmlNode>> _skillXmlCacheDic = null;
 
         private string _cacheSkillString = null;
+
+        private XmlHelper _skillXmlHelper = null;
 
         #endregion
 
         #region 私有变量
 
         private bool _isInit = false;
+        private int skillXml;
+
         /// <summary>
         /// 是否初始化完毕
         /// </summary>
@@ -67,13 +79,52 @@ namespace TSSkill
                 return;
             }
             _cacheSkillString = skillData;
+            _skillXmlHelper = new XmlHelper(skillData);
+            List<XmlNode> nodes = _skillXmlHelper.GetElements("Skill");
 
-            //_skillStringCacheDic = SkillParser.ParserSkillIds(_cacheSkillString);
-            foreach (KeyValuePair<int, string> item in _skillStringCacheDic)
+            foreach (XmlNode item in nodes)
             {
-                SkillEntity skillEntity = new SkillEntity(item.Key, item.Value);
-
-                Debug.LogError("SkillId:" + item.Key + "====SkillCode:" + item.Value);
+                Dictionary<int, XmlNode> temp = new Dictionary<int, XmlNode>();
+                XmlAttribute itemAttribute = item.Attributes["SkillId"];
+                if (itemAttribute == null)
+                {
+                    throw new Exception("技能等级为空！");
+                }
+                int skillId = 0;
+                if (!int.TryParse(itemAttribute.Value, out skillId))
+                {
+                    throw new Exception("技能Id必须为数字");
+                }
+                if (_skillXmlCacheDic.ContainsKey(skillId))
+                {
+                    Debug.LogError("技能ID：" + skillId + "重复!");
+                }
+                XmlNodeList nodeList = item.SelectNodes("Levels/Level");
+                foreach (XmlNode node in nodeList)
+                {
+                    XmlAttribute xmlAttribute = node.Attributes["Value"];
+                    if (xmlAttribute == null)
+                    {
+                        throw new Exception("技能等级为空！");
+                    }
+                    int level = 0;
+                    if (int.TryParse(xmlAttribute.Value, out level))
+                    {
+                        if (!temp.ContainsKey(level))
+                        {
+                            temp.Add(level, node);
+                        }
+                        else
+                        {
+                            Debug.LogError("技能ID：" + skillId + "中有等级重复!");
+                        }
+                    }
+                    else
+                    {
+                        throw new Exception("技能等级必须为数字");
+                    }
+                }
+                _skillXmlCacheDic.Add(skillId, temp);
             }
 
             _isInit = true;
@@ -205,23 +256,41 @@ namespace TSSkill
             return tempDic;
         }
 
-
-        //    skill(1000) //技能1
-        //    {
-        //    FaceToTarget(0)
-        //    PlayAnimation(1, Skill_1)
-        //    Bullet(1.3, Bullet, 10)
-        //    PlayEffect(0, Explode8, 3)
-        //    AddBuff(1, 1, 1, 30%)
-        //    Attack()
-        //    }
-        public bool CreateSkillEntity(int skillId)
+        /// <summary>
+        /// 获取技能触发器 
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public ISkillTrigger GetTrigger(string name)
         {
-            //if (string.IsNullOrEmpty(skillConfig))
-            //    return false;
-            //string[] lines = skillConfig.Split('\n');
+            if (_skillTriggerTypeCacheDic.ContainsKey(name))
+            {
+                return Activator.CreateInstance(_skillTriggerTypeCacheDic[name]) as ISkillTrigger;
+            }
+            return null;
+        }
 
-            //SkillEntity skillEntity = new SkillEntity(10);
+
+        /// <summary>
+        /// 创建技能实体
+        /// </summary>
+        /// <param name="skillId"></param>
+        /// <param name="level"></param>
+        /// <returns></returns>
+        public bool CreateSkillEntity(int skillId, int level)
+        {
+            if (!_skillXmlCacheDic.ContainsKey(skillId))
+            {
+                Debug.LogError("技能Id:" + skillId + "不存在");
+                return false;
+            }
+            if (!_skillXmlCacheDic[skillId].ContainsKey(level))
+            {
+                Debug.LogError("技能Id:" + skillId + ",等级：" + level + "不存在");
+                return false;
+            }
+            XmlNode skillXml = _skillXmlCacheDic[skillId][level];
+            SkillEntity entity = new SkillEntity(skillId, skillXml);
 
             return true;
         }
@@ -236,36 +305,67 @@ namespace TSSkill
         /// </summary>
         private SkillSystem()
         {
-            _skillDataType = typeof(SkillData);
+            //_skillDataType = typeof(SkillData);
             _iskillComponentType = typeof(ISkillComponent);
-            _injectType = typeof(InjectAttribute);
-            _dependencyType = typeof(DependencyAttribute);
+            _iskillTriggerType = typeof(ISkillTrigger);
+            //_injectType = typeof(InjectAttribute);
+            //_dependencyType = typeof(DependencyAttribute);
             _configType = typeof(ConfigAttribute);
-            _skillComponentFieldInfoCacheDic = new Dictionary<string, Dictionary<string, FieldInfo>>();
-            _skillBuffFieldInfoCacheDic = new Dictionary<string, Dictionary<string, FieldInfo>>();
-            _skillFieldInfoDic = new Dictionary<string, FieldInfo>();
-            _skillStringCacheDic = new Dictionary<int, string>();
-            _firstGenerationCacheDic = new Dictionary<int, SkillEntity>();
-            _skillEntityCacheDic = new Dictionary<int, Stack<SkillEntity>>();
-            FieldInfo[] fieldInfos = _skillDataType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            foreach (FieldInfo item in fieldInfos)
+            //_skillComponentFieldInfoCacheDic = new Dictionary<string, Dictionary<string, FieldInfo>>();
+            //_skillBuffFieldInfoCacheDic = new Dictionary<string, Dictionary<string, FieldInfo>>();
+            //_skillFieldInfoDic = new Dictionary<string, FieldInfo>();
+            //_skillStringCacheDic = new Dictionary<int, string>();
+            //_firstGenerationCacheDic = new Dictionary<int, SkillEntity>();
+            //_skillEntityCacheDic = new Dictionary<int, Stack<SkillEntity>>();
+            _skillTriggerTypeCacheDic = new Dictionary<string, Type>();
+            _skillXmlCacheDic = new Dictionary<int, Dictionary<int, XmlNode>>();
+            Type[] allTypes = _iskillTriggerType.Assembly.GetTypes();
+            foreach (Type type in allTypes)
             {
-                object[] attrs = item.GetCustomAttributes(_injectType, false);
-
-                if (attrs.Length > 0)
+                if (!type.IsAbstract && _iskillTriggerType.IsAssignableFrom(type))
                 {
-                    InjectAttribute injectAttribute = attrs[0] as InjectAttribute;
-                    if (injectAttribute != null)
+                    if (!_skillTriggerTypeCacheDic.ContainsKey(type.Name))
                     {
-                        string fieldName = item.Name;
-                        if (!string.IsNullOrEmpty(injectAttribute.R_InjectName))
-                        {
-                            fieldName = injectAttribute.R_InjectName;
-                        }
-                        this._skillFieldInfoDic.Add(fieldName, item);
+                        _skillTriggerTypeCacheDic.Add(type.Name, type);
                     }
                 }
             }
+
+
+
+
+
+            //_skillDataType = typeof(SkillData);
+            //_iskillComponentType = typeof(ISkillComponent);
+            //_injectType = typeof(InjectAttribute);
+            //_dependencyType = typeof(DependencyAttribute);
+            //_configType = typeof(ConfigAttribute);
+            //_skillComponentFieldInfoCacheDic = new Dictionary<string, Dictionary<string, FieldInfo>>();
+            //_skillBuffFieldInfoCacheDic = new Dictionary<string, Dictionary<string, FieldInfo>>();
+            //_skillFieldInfoDic = new Dictionary<string, FieldInfo>();
+            //_skillStringCacheDic = new Dictionary<int, string>();
+            //_firstGenerationCacheDic = new Dictionary<int, SkillEntity>();
+            //_skillEntityCacheDic = new Dictionary<int, Stack<SkillEntity>>();
+            //_skillXmlCacheDic = new Dictionary<int, Dictionary<int, XmlNode>>();
+            //FieldInfo[] fieldInfos = _skillDataType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            //foreach (FieldInfo item in fieldInfos)
+            //{
+            //    object[] attrs = item.GetCustomAttributes(_injectType, false);
+
+            //    if (attrs.Length > 0)
+            //    {
+            //        InjectAttribute injectAttribute = attrs[0] as InjectAttribute;
+            //        if (injectAttribute != null)
+            //        {
+            //            string fieldName = item.Name;
+            //            if (!string.IsNullOrEmpty(injectAttribute.R_InjectName))
+            //            {
+            //                fieldName = injectAttribute.R_InjectName;
+            //            }
+            //            this._skillFieldInfoDic.Add(fieldName, item);
+            //        }
+            //    }
+            //}
 
         }
     }
